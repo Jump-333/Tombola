@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tombola natalizia 1-90: finestra di controllo (PC) + finestra di proiezione.
+"""Tombola natalizia: finestra di controllo (PC) + finestra di proiezione.
 Solo libreria standard; Pillow (pip install pillow) serve solo per l'immagine di sfondo."""
 import glob, json, math, os, random, tkinter as tk
 from datetime import datetime
@@ -12,12 +12,12 @@ except ImportError:
 CFG = "tombola_config.json"
 DEFAULT = {
     "mode": "manual",  # "manual": clicchi i numeri sul PC | "auto": estrae il programma (tasto Estrai / barra spaziatrice)
+    "numbers": 100,
     "show_prize": True,  # mostra sul proiettore per cosa si gioca
     "animation_ms": 5000,  # per quanto tempo il numero estratto resta in grande prima della tabella
-    "snow": True,  # neve che cade sul proiettore
-    "projector_geometry": "1280x720+1920+0",  # LxA+X+Y: X = larghezza del monitor principale
+    "snow": False,  # neve che cade sul proiettore
+    "projector_geometry": "1280x720+0+0",  # LxA+X+Y: X = larghezza del monitor principale
     "projector_fullscreen": False,  # F11 sulla finestra di proiezione per alternare
-    "runs_dir": "runs",
 }
 PRIZES = ["Ambo", "Terna", "Quaterna", "Cinquina", "Tombola"]
 BG, CELL, RED, GOLD, WHITE, DIM = "#0d3b2e", "#17604a", "#c8102e", "#ffd24a", "#ffffff", "#7fb59f"
@@ -40,7 +40,7 @@ class Tombola:
         s.bg_key = s.bg_tk = None
         s.flakes = [[random.random(), random.random(), random.uniform(1.5, 4), random.uniform(.002, .006),
                      random.uniform(0, 6.28)] for _ in range(70)]
-        os.makedirs(s.cfg["runs_dir"], exist_ok=True)
+        os.makedirs("runs", exist_ok=True)
         s.path = s.new_path()
 
         # --- proiezione ---
@@ -66,7 +66,7 @@ class Tombola:
         grid = tk.Frame(root)
         grid.pack(padx=8, pady=4)
         s.cells = {}
-        for n in range(1, 91):
+        for n in range(1, (s.cfg["numbers"]+1)):
             l = tk.Label(grid, text=n, width=4, height=2, relief="raised", font=("Helvetica", 14, "bold"))
             l.grid(row=(n - 1) // 10, column=(n - 1) % 10, padx=1, pady=1)
             l.bind("<Button-1>", lambda e, n=n: s.click(n))
@@ -88,7 +88,7 @@ class Tombola:
 
         s.refresh()
         s.loop()
-        runs = sorted(glob.glob(os.path.join(s.cfg["runs_dir"], "tombola_*.json")))
+        runs = sorted(glob.glob(os.path.join("runs", "tombola_*.json")))
         if runs:
             root.update()
             if messagebox.askyesno("Ripristino", f"Riprendere l'ultima partita?\n{os.path.basename(runs[-1])}"):
@@ -96,7 +96,7 @@ class Tombola:
 
     # --- persistenza ---
     def new_path(s):
-        return os.path.join(s.cfg["runs_dir"], datetime.now().strftime("tombola_%Y-%m-%d_%H-%M-%S.json"))
+        return os.path.join("runs", datetime.now().strftime("tombola_%Y-%m-%d_%H-%M-%S.json"))
 
     def save(s):
         tmp = s.path + ".tmp"
@@ -107,7 +107,7 @@ class Tombola:
         try:
             d = json.load(open(path))
             drawn = [int(n) for n in d["drawn"]]
-            assert len(set(drawn)) == len(drawn) and all(1 <= n <= 90 for n in drawn)
+            assert len(set(drawn)) == len(drawn) and all(1 <= n <= s.cfg["numbers"] for n in drawn)
             prize = int(d.get("prize", 0))
         except Exception as e:
             return messagebox.showerror("Errore", f"File non valido: {e}")
@@ -116,7 +116,7 @@ class Tombola:
         s.refresh()
 
     def load_dialog(s):
-        p = None if s.busy else filedialog.askopenfilename(initialdir=s.cfg["runs_dir"], filetypes=[("Partita", "*.json")])
+        p = None if s.busy else filedialog.askopenfilename(initialdir="runs", filetypes=[("Partita", "*.json")])
         if p:
             s.load(p)
 
@@ -135,9 +135,9 @@ class Tombola:
         s.refresh()
 
     def extract(s, n=None):
-        if s.busy or len(s.drawn) >= 90:
+        if s.busy or len(s.drawn) >= s.cfg["numbers"]:
             return
-        s.add(n or random.choice([x for x in range(1, 91) if x not in s.drawn]))
+        s.add(n or random.choice([x for x in range(1, (s.cfg["numbers"]+1)) if x not in s.drawn]))
         s.num, s.busy, s.t, s.bg = s.drawn[-1], True, 0, False
 
     def undo(s):
@@ -174,7 +174,7 @@ class Tombola:
         for n, l in s.cells.items():
             l.config(bg=GOLD if n == last else RED if n in s.drawn else "#e8e8e8",
                      fg="black" if n == last else "white" if n in s.drawn else "black")
-        s.info.config(text=f"Estratti: {len(s.drawn)}/90   Ultimo: {last or '-'}")
+        s.info.config(text=f"Estratti: {len(s.drawn)}/{s.cfg["numbers"]}  Ultimo: {last or '-'}")
 
     def loop(s):
         s.frame += 1
@@ -242,8 +242,8 @@ class Tombola:
                 x, y, r = cx + R * 1.45 * math.cos(b), cy + R * 1.45 * math.sin(b), R * .09
                 cv.create_oval(x - r, y - r, x + r, y + r, fill=LIGHTS[k % 4], outline="")
         else:  # tabella
-            cw, ch, last = W / 10, bh / 9, s.drawn[-1] if s.drawn else None
-            for n in range(1, 91):
+            cw, ch, last = W / 10, bh / math.ceil(s.cfg["numbers"]/10), s.drawn[-1] if s.drawn else None
+            for n in range(1, (s.cfg["numbers"]+1)):
                 r_, c_ = divmod(n - 1, 10)
                 x, y, r, on = (c_ + .5) * cw, y0 + (r_ + .5) * ch, min(cw, ch) * .46, n in s.drawn
                 if n == last:
