@@ -23,7 +23,7 @@ PRIZES = ["Ambo", "Terna", "Quaterna", "Cinquina", "Tombola"]
 BG, CELL, RED, GOLD, WHITE, DIM = "#0d3b2e", "#17604a", "#c8102e", "#ffd24a", "#ffffff", "#7fb59f"
 LIGHTS = [RED, GOLD, WHITE, "#3fa6e0"]
 FRAME = 33  # ms per fotogramma
-
+FONT = "Comic Sans MS"
 
 def load_cfg():
     user = json.load(open(CFG)) if os.path.exists(CFG) else {}
@@ -228,7 +228,7 @@ class Tombola:
                 s.pill(i * w + w * .05, y0 + 6, (i + 1) * w - w * .05, y0 + bar - 6,
                        fill=GOLD if on else "#7d0f22", outline=WHITE if on else "#c9a23a", width=3 if on else 1)
                 cv.create_text((i + .5) * w, y0 + bar / 2, text=p.upper(), fill=BG if on else "#ffe9a8",
-                               font=("Helvetica", -int(min(bar * .4, w / 6.5)), "bold"))
+                               font=(FONT, -int(min(bar * .4, w / 6.5)), "bold"))
             y0 += bar
         bh, cx, cy = H - y0, W / 2, y0 + (H - y0) / 2
         m = min(W, bh)
@@ -236,7 +236,7 @@ class Tombola:
         if s.busy:  # numero subito visibile in una grande pallina (zoom rapido), con luci che girano
             R = m * .3 * (1 - (1 - min(1, s.t / 500)) ** 3)
             s.bauble(cx, cy + R * .1, R, RED, width=max(3, int(R * .06)))
-            cv.create_text(cx, cy + R * .1, text=s.num, fill=WHITE, font=("Helvetica", -max(8, int(R)), "bold"))
+            cv.create_text(cx, cy + R * .1, text=s.num, fill=WHITE, font=(FONT, -max(8, int(R)), "bold"))
             for k in range(12):
                 b = s.t * .003 + k * math.pi / 6
                 x, y, r = cx + R * 1.45 * math.cos(b), cy + R * 1.45 * math.sin(b), R * .09
@@ -251,7 +251,7 @@ class Tombola:
                 cv.create_oval(x - r, y - r, x + r, y + r, width=3 if n == last else 2,
                                fill=GOLD if n == last else RED if on else CELL,
                                outline=WHITE if n == last else GOLD if on else "")
-                cv.create_text(x, y, text=n, font=("Helvetica", -int(r * .9), "bold"),
+                cv.create_text(x, y, text=n, font=(FONT, -int(r * .9), "bold"),
                                fill=BG if n == last else WHITE if on else DIM)
 
         # neve
