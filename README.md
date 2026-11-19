@@ -16,7 +16,7 @@ python3 tombola.py
 
 ## Config (`tombola_config.json`, creato al primo avvio)
 | Chiave | Significato | Default |
-|---|---|
+|---|---|---|
 | `mode` | `"manual"` (clicchi i numeri) o `"auto"` (estrae il programma) | `"manual"` |
 | `numbers` | quantità di numeri sullo schermo | `100` |
 | `show_prize` | mostra in proiezione per cosa si gioca | `True` |
